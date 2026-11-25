@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import {
   SAMPLE_TEXT,
+  clean,
   defaultOptions,
+  describeChanges,
   measure,
-  neatify,
+  presets,
   type CleanOptions,
+  type PresetId,
 } from "@/lib/neatify";
 
 const OPTIONS: { key: keyof CleanOptions; label: string }[] = [
@@ -32,13 +35,22 @@ function readTheme() {
   return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
+const presetIds = Object.keys(presets) as PresetId[];
+
+function sameOptions(left: CleanOptions, right: CleanOptions) {
+  return (Object.keys(left) as (keyof CleanOptions)[]).every((key) => left[key] === right[key]);
+}
+
 export function NeatifyApp() {
   const [source, setSource] = useState("");
   const [options, setOptions] = useState<CleanOptions>(defaultOptions);
   const [copied, setCopied] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const theme = useSyncExternalStore(subscribeToTheme, readTheme, () => "light");
 
-  const cleaned = useMemo(() => neatify(source, options), [source, options]);
+  const result = useMemo(() => clean(source, options), [source, options]);
+  const cleaned = result.text;
+  const changeSummary = source.trim() ? describeChanges(result.changes) : "";
   const before = useMemo(() => measure(source), [source]);
   const after = useMemo(() => measure(cleaned), [cleaned]);
 
@@ -48,16 +60,48 @@ export function NeatifyApp() {
     return () => window.clearTimeout(timeout);
   }, [copied]);
 
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        void copyText(cleaned);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [cleaned]);
+
+  async function copyText(value: string) {
+    if (!value) return;
+    await navigator.clipboard.writeText(value);
+    setCopied(true);
+  }
+
+  async function pasteClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      setSource(text);
+      setNotice(null);
+    } catch {
+      setNotice("Allow clipboard access to paste, or paste into the box.");
+    }
+  }
+
+  function downloadText() {
+    if (!cleaned) return;
+    const file = new Blob([cleaned], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "neatify.txt";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
     document.documentElement.classList.toggle("dark", next === "dark");
     localStorage.setItem("neatify-theme", next);
-  }
-
-  async function copyCleaned() {
-    if (!cleaned) return;
-    await navigator.clipboard.writeText(cleaned);
-    setCopied(true);
   }
 
   return (
@@ -85,6 +129,29 @@ export function NeatifyApp() {
           Paste text copied from a PDF, a website, or Word. Extra spaces, broken lines, duplicate
           lines, and leftover formatting come out as clean paragraphs.
         </p>
+
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Presets">
+          {presetIds.map((id) => {
+            const preset = presets[id];
+            const selected = sameOptions(options, preset.options);
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setOptions(preset.options)}
+                className={cn(
+                  "inline-flex h-9 cursor-pointer items-center rounded-md border px-3 text-sm",
+                  selected
+                    ? "border-primary bg-primary text-on-primary"
+                    : "border-border bg-surface text-text hover:bg-surface-muted",
+                )}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
+        </div>
 
         <fieldset className="flex flex-wrap gap-2">
           <legend className="sr-only">Cleaning options</legend>
@@ -116,6 +183,9 @@ export function NeatifyApp() {
             <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
               <h2 className="text-sm font-semibold text-text">Pasted text</h2>
               <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => void pasteClipboard()}>
+                  Paste
+                </Button>
                 <Button variant="ghost" size="sm" onClick={() => setSource(SAMPLE_TEXT)}>
                   Sample
                 </Button>
@@ -132,15 +202,20 @@ export function NeatifyApp() {
               className={fieldClass}
               spellCheck={false}
             />
-            <MeasureBar measure={before} />
+            <MeasureBar measure={before} note={notice} />
           </section>
 
           <section className="flex min-h-0 flex-col rounded-lg border border-border bg-surface">
             <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
               <h2 className="text-sm font-semibold text-text">Clean text</h2>
-              <Button size="sm" onClick={copyCleaned} disabled={!cleaned}>
-                {copied ? "Copied" : "Copy"}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={downloadText} disabled={!cleaned}>
+                  Download
+                </Button>
+                <Button size="sm" onClick={() => void copyText(cleaned)} disabled={!cleaned}>
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
             </div>
             <textarea
               readOnly
@@ -150,14 +225,14 @@ export function NeatifyApp() {
               className={fieldClass}
               spellCheck={false}
             />
-            <MeasureBar measure={after} />
+            <MeasureBar measure={after} note={changeSummary} />
           </section>
         </div>
       </main>
 
       <footer className="border-t border-border">
         <div className="page-wrap py-4 text-sm text-text-subtle">
-          Cleaning runs in the browser. The text stays on this device.
+          Cleaning runs in the browser. The text stays on this device. Cmd or Ctrl + Enter copies the clean text.
         </div>
       </footer>
     </div>
@@ -181,10 +256,19 @@ function MoonIcon() {
   );
 }
 
-function MeasureBar({ measure: stats }: { measure: { characters: number; words: number; lines: number } }) {
+function MeasureBar({
+  measure: stats,
+  note,
+}: {
+  measure: { characters: number; words: number; lines: number };
+  note?: string | null;
+}) {
   return (
-    <p className="border-t border-border px-4 py-2 text-sm text-text-subtle">
-      {stats.characters} characters, {stats.words} words, {stats.lines} lines
-    </p>
+    <div className="border-t border-border px-4 py-2 text-sm text-text-subtle">
+      <p>
+        {`${stats.characters} ${stats.characters === 1 ? "character" : "characters"}, ${stats.words} ${stats.words === 1 ? "word" : "words"}, ${stats.lines} ${stats.lines === 1 ? "line" : "lines"}`}
+      </p>
+      {note ? <p className="mt-1 text-text-muted">{note}</p> : null}
+    </div>
   );
 }

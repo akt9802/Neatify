@@ -4,6 +4,7 @@ export type CleanOptions = {
   collapseSpaces: boolean;
   removeDuplicateLines: boolean;
   stripFormatting: boolean;
+  singleBlock: boolean;
 };
 
 export const defaultOptions: CleanOptions = {
@@ -12,6 +13,44 @@ export const defaultOptions: CleanOptions = {
   collapseSpaces: true,
   removeDuplicateLines: true,
   stripFormatting: true,
+  singleBlock: false,
+};
+
+export const presets = {
+  pdf: {
+    label: "PDF",
+    options: { ...defaultOptions },
+  },
+  email: {
+    label: "Email",
+    options: {
+      unwrapLines: false,
+      rejoinHyphens: false,
+      collapseSpaces: true,
+      removeDuplicateLines: true,
+      stripFormatting: true,
+      singleBlock: false,
+    } satisfies CleanOptions,
+  },
+  chat: {
+    label: "Chat",
+    options: {
+      unwrapLines: true,
+      rejoinHyphens: true,
+      collapseSpaces: true,
+      removeDuplicateLines: true,
+      stripFormatting: true,
+      singleBlock: true,
+    } satisfies CleanOptions,
+  },
+} as const;
+
+export type PresetId = keyof typeof presets;
+
+export type CleanChange = {
+  lineBreaksJoined: number;
+  duplicateLinesRemoved: number;
+  extraSpacesRemoved: number;
 };
 
 export type TextMeasure = {
@@ -36,16 +75,66 @@ export function measure(text: string): TextMeasure {
 }
 
 export function neatify(input: string, options: CleanOptions = defaultOptions): string {
+  return clean(input, options).text;
+}
+
+export function clean(input: string, options: CleanOptions = defaultOptions): { text: string; changes: CleanChange } {
   let text = input.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const changes: CleanChange = {
+    lineBreaksJoined: 0,
+    duplicateLinesRemoved: 0,
+    extraSpacesRemoved: 0,
+  };
 
   if (options.stripFormatting) text = stripFormatting(text);
-  if (options.rejoinHyphens) text = rejoinHyphens(text);
-  if (options.collapseSpaces) text = collapseSpaces(text);
-  if (options.unwrapLines) text = unwrapLines(text);
-  if (options.collapseSpaces) text = collapseSpaces(text);
-  if (options.removeDuplicateLines) text = removeDuplicateLines(text);
+  if (options.rejoinHyphens) {
+    const rejoined = rejoinHyphens(text);
+    changes.lineBreaksJoined += rejoined.joined;
+    text = rejoined.text;
+  }
+  if (options.collapseSpaces) text = applyCollapse(text, changes);
+  if (options.unwrapLines) {
+    const before = text ? text.split("\n").length : 0;
+    text = unwrapLines(text);
+    const after = text ? text.split("\n").length : 0;
+    changes.lineBreaksJoined += Math.max(0, before - after);
+  }
+  if (options.collapseSpaces) text = applyCollapse(text, changes);
+  if (options.removeDuplicateLines) {
+    const deduped = removeDuplicateLines(text);
+    changes.duplicateLinesRemoved += deduped.removed;
+    text = deduped.text;
+  }
+  if (options.singleBlock) {
+    changes.lineBreaksJoined += text.match(/\n/g)?.length ?? 0;
+    text = applyCollapse(text.replace(/\n+/g, " "), changes);
+  }
 
-  return text.replace(/\n{3,}/g, "\n\n").trim();
+  text = text.replace(/\n{3,}/g, "\n\n");
+  const trimmed = text.trim();
+  if (options.collapseSpaces) changes.extraSpacesRemoved += text.length - trimmed.length;
+  return { text: trimmed, changes };
+}
+
+export function describeChanges(changes: CleanChange): string {
+  const parts: string[] = [];
+  if (changes.lineBreaksJoined) {
+    parts.push(
+      `${changes.lineBreaksJoined} line ${changes.lineBreaksJoined === 1 ? "break" : "breaks"} joined`,
+    );
+  }
+  if (changes.duplicateLinesRemoved) {
+    parts.push(
+      `${changes.duplicateLinesRemoved} duplicate ${changes.duplicateLinesRemoved === 1 ? "line" : "lines"} removed`,
+    );
+  }
+  if (changes.extraSpacesRemoved) {
+    parts.push(
+      `${changes.extraSpacesRemoved} extra ${changes.extraSpacesRemoved === 1 ? "space" : "spaces"} removed`,
+    );
+  }
+  if (!parts.length) return "";
+  return `${parts.join(", ")}.`;
 }
 
 function stripFormatting(text: string): string {
@@ -99,8 +188,18 @@ function fromCodePoint(code: number, fallback: string): string {
   return String.fromCodePoint(code);
 }
 
-function rejoinHyphens(text: string): string {
-  return text.replace(/([A-Za-z])-[ \t]*\n[ \t]*([a-z])/g, "$1$2");
+function rejoinHyphens(text: string): { text: string; joined: number } {
+  const matches = text.match(/([A-Za-z])-[ \t]*\n[ \t]*([a-z])/g);
+  return {
+    text: text.replace(/([A-Za-z])-[ \t]*\n[ \t]*([a-z])/g, "$1$2"),
+    joined: matches?.length ?? 0,
+  };
+}
+
+function applyCollapse(text: string, changes: CleanChange): string {
+  const next = collapseSpaces(text);
+  changes.extraSpacesRemoved += Math.max(0, text.length - next.length);
+  return next;
 }
 
 function collapseSpaces(text: string): string {
@@ -192,10 +291,11 @@ function looksLikeHeading(line: string): boolean {
   return words.length <= 8 && trimmed.length <= 48 && /^[A-Z0-9]/.test(trimmed) && !/[a-z]$/.test(trimmed);
 }
 
-function removeDuplicateLines(text: string): string {
+function removeDuplicateLines(text: string): { text: string; removed: number } {
   const lines = text.split("\n");
   const kept: string[] = [];
   let previous = "";
+  let removed = 0;
 
   for (const line of lines) {
     const key = line.trim();
@@ -203,12 +303,15 @@ function removeDuplicateLines(text: string): string {
       kept.push("");
       continue;
     }
-    if (key === previous) continue;
+    if (key === previous) {
+      removed += 1;
+      continue;
+    }
     kept.push(line.trim());
     previous = key;
   }
 
-  return kept.join("\n");
+  return { text: kept.join("\n"), removed };
 }
 
 export const SAMPLE_TEXT = `CHAPTER 1

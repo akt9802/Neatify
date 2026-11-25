@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { defaultOptions, neatify, SAMPLE_TEXT, type CleanOptions } from "./neatify.ts";
+import { clean, defaultOptions, describeChanges, neatify, presets, SAMPLE_TEXT, type CleanOptions } from "./neatify.ts";
 
 function withOptions(patch: Partial<CleanOptions>): CleanOptions {
   return { ...defaultOptions, ...patch };
@@ -63,4 +63,16 @@ test("leaves internal spacing alone when every clean step is off", () => {
 
 test("returns an empty string for blank input", () => {
   assert.equal(neatify("   \n\n  "), "");
+});
+
+test("email preset keeps line breaks and chat preset makes one block", () => {
+  const input = "Hello   there\n\nSecond line";
+  assert.equal(neatify(input, presets.email.options), "Hello there\n\nSecond line");
+  assert.equal(neatify(input, presets.chat.options), "Hello there Second line");
+});
+
+test("describes the spaces, breaks, and duplicate lines it removed", () => {
+  const input = "Hello    world\nHello    world";
+  const { changes } = clean(input, presets.pdf.options);
+  assert.equal(describeChanges(changes), "1 duplicate line removed, 6 extra spaces removed.");
 });
