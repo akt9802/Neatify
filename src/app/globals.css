@@ -18,17 +18,17 @@
 }
 
 .dark {
-  --background: 28 26 23;
-  --surface: 38 35 31;
-  --surface-muted: 50 46 41;
-  --border: 68 62 54;
-  --text: 244 239 230;
-  --text-muted: 196 186 170;
-  --text-subtle: 150 140 126;
-  --primary: 244 239 230;
-  --primary-hover: 255 252 247;
-  --primary-soft: 50 46 41;
-  --on-primary: 28 26 23;
+  --background: 12 12 12;
+  --surface: 22 22 22;
+  --surface-muted: 32 32 32;
+  --border: 54 54 54;
+  --text: 245 245 245;
+  --text-muted: 184 184 184;
+  --text-subtle: 140 140 140;
+  --primary: 245 245 245;
+  --primary-hover: 255 255 255;
+  --primary-soft: 36 36 36;
+  --on-primary: 12 12 12;
 }
 
 @theme inline {
