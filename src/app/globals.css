@@ -1,26 +1,121 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: 247 247 242;
+  --surface: 255 255 255;
+  --surface-muted: 239 242 236;
+  --border: 226 230 222;
+  --text: 32 41 35;
+  --text-muted: 101 113 104;
+  --text-subtle: 137 147 138;
+  --primary: 49 93 72;
+  --primary-hover: 38 75 57;
+  --primary-soft: 232 239 231;
+  --on-primary: 255 255 255;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+.dark {
+  --background: 13 25 19;
+  --surface: 20 37 28;
+  --surface-muted: 27 48 36;
+  --border: 48 68 56;
+  --text: 242 244 237;
+  --text-muted: 170 184 173;
+  --text-subtle: 132 149 138;
+  --primary: 165 214 155;
+  --primary-hover: 184 223 175;
+  --primary-soft: 32 59 41;
+  --on-primary: 13 25 19;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: rgb(var(--background));
+  --color-surface: rgb(var(--surface));
+  --color-surface-muted: rgb(var(--surface-muted));
+  --color-border: rgb(var(--border));
+  --color-text: rgb(var(--text));
+  --color-text-muted: rgb(var(--text-muted));
+  --color-text-subtle: rgb(var(--text-subtle));
+  --color-primary: rgb(var(--primary));
+  --color-primary-hover: rgb(var(--primary-hover));
+  --color-primary-soft: rgb(var(--primary-soft));
+  --color-on-primary: rgb(var(--on-primary));
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  overflow-x: clip;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  min-height: 100dvh;
+  background-color: rgb(var(--background));
+  color: rgb(var(--text));
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+input[type="checkbox"] {
+  accent-color: rgb(var(--primary));
+}
+
+::selection {
+  background: rgb(var(--primary-soft));
+  color: rgb(var(--text));
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--primary));
+  outline-offset: 2px;
+}
+
+.page-wrap {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .page-wrap {
+    padding-inline: 2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
