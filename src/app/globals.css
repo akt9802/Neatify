@@ -1,34 +1,34 @@
 @import "tailwindcss";
 
 :root {
-  --background: 247 247 242;
-  --surface: 255 255 255;
-  --surface-muted: 239 242 236;
-  --border: 226 230 222;
-  --text: 32 41 35;
-  --text-muted: 101 113 104;
-  --text-subtle: 137 147 138;
-  --primary: 49 93 72;
-  --primary-hover: 38 75 57;
-  --primary-soft: 232 239 231;
-  --on-primary: 255 255 255;
+  --background: 244 239 230;
+  --surface: 255 252 247;
+  --surface-muted: 236 229 216;
+  --border: 222 212 196;
+  --text: 28 26 23;
+  --text-muted: 92 84 74;
+  --text-subtle: 138 128 114;
+  --primary: 28 26 23;
+  --primary-hover: 54 50 45;
+  --primary-soft: 236 229 216;
+  --on-primary: 255 252 247;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
 }
 
 .dark {
-  --background: 13 25 19;
-  --surface: 20 37 28;
-  --surface-muted: 27 48 36;
-  --border: 48 68 56;
-  --text: 242 244 237;
-  --text-muted: 170 184 173;
-  --text-subtle: 132 149 138;
-  --primary: 165 214 155;
-  --primary-hover: 184 223 175;
-  --primary-soft: 32 59 41;
-  --on-primary: 13 25 19;
+  --background: 28 26 23;
+  --surface: 38 35 31;
+  --surface-muted: 50 46 41;
+  --border: 68 62 54;
+  --text: 244 239 230;
+  --text-muted: 196 186 170;
+  --text-subtle: 150 140 126;
+  --primary: 244 239 230;
+  --primary-hover: 255 252 247;
+  --primary-soft: 50 46 41;
+  --on-primary: 28 26 23;
 }
 
 @theme inline {
