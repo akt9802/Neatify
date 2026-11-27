@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import {
@@ -108,9 +109,12 @@ export function NeatifyApp() {
     <div className="flex min-h-dvh flex-col">
       <header className="border-b border-border bg-surface">
         <div className="page-wrap flex h-16 items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-lg font-semibold leading-none text-text">Neatify</p>
-            <p className="mt-1 text-sm text-text-muted">Fix text instantly</p>
+          <div className="flex min-w-0 items-center gap-3">
+            <Logo className="size-8 shrink-0 text-text" />
+            <div className="min-w-0">
+              <p className="text-lg font-semibold leading-none text-text">Neatify</p>
+              <p className="mt-1 text-sm text-text-muted">Fix text instantly</p>
+            </div>
           </div>
           <button
             type="button"
